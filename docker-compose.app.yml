@@ -1,0 +1,86 @@
+services:
+  backend:
+    build: 
+      context: ./backend
+    container_name: fastapi_app
+    ports:
+      - "8000:8000"
+    networks:
+      - front-tier
+      - back-tier
+    depends_on:
+      postgres_db:
+        condition: service_healthy
+    environment:
+      POSTGRES_SERVER: ${POSTGRES_SERVER}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+  frontend:
+    build: 
+      context: ./frontend
+    container_name: react_app
+    ports:
+      - "5173:5173"
+    networks:
+      - front-tier
+    environment:
+      VITE_API_URL: ${VITE_API_URL}
+
+  postgres_db:
+    image: postgres:17-alpine3.21
+    container_name: postgres_db
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - back-tier
+
+  adminer:
+    image: adminer:4.8.1
+    container_name: adminer
+    ports:
+      - "8080:8080"
+    networks:
+      - back-tier
+
+  proxy:
+    image: jc21/nginx-proxy-manager:2
+    container_name: nginx_proxy_manager
+    ports:
+      - "80:80"
+      - "443:443"
+      - "81:81"
+    environment:
+      DB_SQLITE_FILE: "/data/database.sqlite"
+    volumes:
+      - ./data:/data
+      - ./letsencrypt:/etc/letsencrypt
+    depends_on:
+      - postgres_db
+      - backend
+      - frontend
+      - adminer
+    networks:
+      - front-tier
+      - back-tier
+    
+volumes:
+  db_data:
+    driver: local
+  data:
+  letsencrypt:
+  
+networks:
+  front-tier:
+  back-tier:
