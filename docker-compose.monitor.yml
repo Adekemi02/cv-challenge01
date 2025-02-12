@@ -1,0 +1,68 @@
+services:
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./alert_rules.yml:/etc/prometheus/alert_rules.yml
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+    ports:
+      - "9090:9090"
+    networks:
+      - back-tier
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - back-tier
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: "admin"
+    volumes:
+      - grafana_data:/var/lib/grafana
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    ports:
+      - "8081:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    networks:
+      - back-tier
+    depends_on:
+      - prometheus
+      - redis
+
+  alertmanager:
+    image: prom/alertmanager
+    container_name: alertmanager
+    volumes:
+      - ./alertmanager:/etc/alertmanager
+    ports:
+      - "9093:9093"
+    networks:
+      - back-tier
+    
+  node-exporter:
+    image: prom/node-exporter
+    container_name: node-exporter
+    ports:
+      - "9100:9100"
+    networks:
+      - back-tier
+    
+  redis:
+    image: redis:6.2.6-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - back-tier
