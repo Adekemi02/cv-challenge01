@@ -25,4 +25,4 @@ openapi.json
 *.sw?
 
 # Environment variable
-*.env
+.env

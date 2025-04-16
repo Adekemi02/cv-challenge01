@@ -66,3 +66,8 @@ services:
       - "6379:6379"
     networks:
       - back-tier
+
+volumes:
+  grafana_data:
+    driver: local
+  

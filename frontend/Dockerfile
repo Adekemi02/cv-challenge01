@@ -1,27 +1,17 @@
-# Build stage
 # Base Image
-FROM node:20.18.1-alpine3.20 AS builder
+FROM node:23.11.0
 
 # Set the working directory
 WORKDIR /app
 
-# Copy dependencies
-COPY package.json package-lock.json ./
-
-# Install dependencies
-RUN npm install && npm cache clean --force
-
-# Copy the rest of the application files
+# Copy the application files
 COPY . .
 
-# Production stage
-FROM node:20.18.1-alpine3.20
-
-# Copy necessary files from build stage
-COPY --from=builder /app /app
+# Install dependencies
+RUN npm install
 
 # Expose the port the app runs on
 EXPOSE 5173
 
 # Start Nginx
-CMD ["npm", "run", "dev" "--", "--host"]
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
